@@ -82,7 +82,6 @@ def handle_post(request, namespace):
 
 @app.route("/ce/<namespace>/", methods=["POST", "OPTIONS"])
 async def receive_webhook(request, namespace):
-    print(request.method)
     if request.method == "OPTIONS":
         return await handle_options(request)
     elif request.method == "POST":
