@@ -1,0 +1,19 @@
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: ing-{{ template "fullname" . }}
+  annotations:
+    kubernetes.io/ingress.class: nginx
+    {{- if .Values.certmanagerIssuer }}
+    certmanager.k8s.io/issuer: {{ .Values.certmanagerIssuer }}
+    {{- end }}
+spec:
+  rules:
+  - host: {{ .Values.host }}
+    http:
+      paths:
+      - path: /
+        backend:
+          serviceName: svc-{{ template "fullname" . }}
+          servicePort: 80
+{{ toYaml .Values.ingressExt | indent 2 }}
