@@ -3,9 +3,7 @@ import aiohttp
 from sanic import Sanic
 from sanic.response import json, text
 
-
-app = Sanic()
-
+app = Sanic("cloudevents-bin", load_env="CE_BIN_")
 
 class EventDB(object):
     def __init__(self):
@@ -106,4 +104,5 @@ async def get_events(request, namespace):
     return json(dict(events=objects))
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=8080)
+    port = int(app.config.PORT) if "PORT" in app.config else 8080
+    app.run(host="0.0.0.0", port=port)
