@@ -17,6 +17,6 @@ spec:
         imagePullPolicy: {{ .Values.image.pullPolicy }}
         env:
           - name: CE_BIN_PORT
-            value: 80
+            value: "80"
         resources:
 {{ toYaml .Values.resources | indent 12 }}
