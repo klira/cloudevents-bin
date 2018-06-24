@@ -1,7 +1,7 @@
 {
     "_meta": {
         "hash": {
-            "sha256": "11451f0bfcb0c308ceae6073476f366e14be5f27cb67885a93d6a5f8efb9ee34"
+            "sha256": "a02dff0a8757ced6cd685dfb36b52a81a06fd1bd35c2210b0dd9f513dd26fc23"
         },
         "host-environment-markers": {
             "implementation_name": "cpython",
@@ -125,6 +125,20 @@
                 "sha256:22b1a6f1dc55db8a136335cb0961afa95040ca78aa8c78425a40d91e8618e60e"
             ],
             "version": "==0.7.0"
+        },
+        "sanic-cors": {
+            "hashes": [
+                "sha256:1b526d5fd10d8fe75fffddd32c9e16735c4587ce841872fc10b8b44c14ae2476",
+                "sha256:aaa14b11dd02d18c4f47d29602b79f15f65d71cb59badb215914bfae3579f243"
+            ],
+            "version": "==0.9.4"
+        },
+        "sanic-plugins-framework": {
+            "hashes": [
+                "sha256:839252cdd6385fb4ea3c66508e30770a742f56b89071a2cbd40996b234c7024f",
+                "sha256:d2af389afc241c4cf6b9a7941061b0350b6bda829f0ff1e12decaa450367cfbf"
+            ],
+            "version": "==0.6.2.dev20180617"
         },
         "ujson": {
             "hashes": [

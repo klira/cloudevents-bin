@@ -10,6 +10,7 @@ name = "pypi"
 sanic = "*"
 cloudevents-python = "*"
 aiohttp = "*"
+sanic-cors = "*"
 
 
 [dev-packages]

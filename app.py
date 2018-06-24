@@ -2,8 +2,10 @@ import cloudevents
 import aiohttp
 from sanic import Sanic
 from sanic.response import json, text
+from sanic_cors import CORS
 
 app = Sanic("cloudevents-bin", load_env="CE_BIN_")
+cors = CORS(app, resources={r"/api/*": {"origins": "*"}})
 
 class EventDB(object):
     def __init__(self):
