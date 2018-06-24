@@ -6,15 +6,11 @@ metadata:
     {{- if .Values.ingressClass }}
     kubernetes.io/ingress.class: {{ .Values.ingressClass }}
     {{- end }}
-    {{- if .Values.certmanagerIssuer }}
-    certmanager.k8s.io/issuer: {{ .Values.certmanagerIssuer }}
-    {{- end }}
 spec:
-  rules:
-  - host: {{ .Values.host }}
-    http:
-      paths:
-      - path: /
-        backend:
-          serviceName: svc-{{ template "fullname" . }}
-          servicePort: 80
+  {{- if .Values.tlsSecret }}
+  tls:
+    - secretName: {{ .Values.tlsSecret }}
+  {{- end }}
+  backend:
+    serviceName: svc-{{ template "fullname" . }}
+    servicePort: 80
