@@ -1,8 +1,8 @@
 import cloudevents
 import asyncio
 import aiohttp
-import aioredis
 import ujson
+from db import DB
 from sanic import Sanic
 from sanic.response import json, text
 from sanic_cors import CORS
@@ -47,12 +47,8 @@ async def handle_post(request, namespace):
     if request.json is None:
         return json({"err": "Only JSON bodies are supported"}, status=400)
     ce = cloudevents.parse(request.json)
-    data = dict(namespace=namespace, event=ce.to_dict())
-    list_key = key_name("events/" + namespace)
-    push_f = app.redis.lpush(list_key, ujson.dumps(ce.to_dict()))
-    pub_f = app.redis.publish(key_name("feed"), ujson.dumps(data))
-    await asyncio.gather(push_f, pub_f)
-    app.add_task(asyncio.ensure_future(app.redis.ltrim(list_key, 0, 200)))
+    await app.db.register_event(namespace, ce)
+
     return json({"msg": "Got webhook!"}, status=202)
 
 
@@ -77,8 +73,7 @@ async def about_namespace(request, namespace):
 
 @app.route("/api/<namespace>/events", methods=["GET"])
 async def get_events(request, namespace):
-    events = await app.redis.lrange(key_name("events/" + namespace), 0, 100)
-    objects = list(ujson.loads(x) for x in events)
+    objects = await app.db.get_events(namespace)
     return json(dict(events=objects))
 
 
@@ -95,64 +90,35 @@ async def event_feed(request, ws, namespace):
             app.subs[namespace].remove(sender_fn)
 
 
-async def redis_reader(app, ch):
-    while (await ch.wait_message()):
-        msg = await ch.get_json()
-        if "namespace" not in msg:
-            print("BUG: Message missing namespace - {}".format(msg))
-            continue
-
-        if "event" not in msg:
-            print("BUG: Message missing event - {}".format(msg))
-            continue
-
-        ns = msg["namespace"]
-        for fns in app.subs[ns]:
-            await fns(ujson.dumps(msg["event"]))
+def send_event(ns, event):
+    data = ujson.dumps(event)
+    return asyncio.gather(*(
+        fn(data)
+        for fn in app.subs.get(ns, [])
+    ))
 
 
 @app.listener('before_server_stop')
 async def notify_server_stopping(app, loop):
     stop_ws.set_result(True)
     await asyncio.sleep(1)
-    app.redis_sub.close()
-
-    app.redis.close()
-    await app.redis_sub.wait_closed()
-    await app.redis.wait_closed()
-
-    await app.http.close()
 
 
-def key_name(x):
-    prefix = app.config.REDIS_PREFIX if "REDIS_PREFIX" in app.config else "CLOUDEVENTS-BIN-"
-    full = prefix + 'CLOUDEVENTS-BIN/'
-    return full + x
+@app.listener('after_server_stop')
+async def close_db(app, loop):
+    await asyncio.gather(
+        app.db.close(),
+        app.http.close()
+    )
+
 
 @app.listener('before_server_start')
 async def setup_something(app, loop):
     global stop_ws
     stop_ws = asyncio.Future(loop=loop)
     app.subs = dict()
-    redis_sub = await aioredis.create_redis(
-        app.config.REDIS_URL,
-        loop=loop,
-        password=app.config.REDIS_PASSWORD if 'REDIS_PASSWORD' in app.config else None
-    )
-    app.redis_sub = redis_sub
-    app.redis = await aioredis.create_redis(
-        app.config.REDIS_URL,
-        loop=loop,
-        password=app.config.REDIS_PASSWORD if 'REDIS_PASSWORD' in app.config else None
-    )
-
-    async def sub(r):
-        subs = await r.subscribe(key_name("feed"))
-        chan = subs[0]
-        app.add_task(asyncio.ensure_future(redis_reader(app, chan)))
-
-    app.add_task(asyncio.ensure_future(sub(redis_sub)))
-
+    app.db = DB(app.config, loop, send_event)
+    await app.db.start()
     app.http = aiohttp.ClientSession(loop=loop)
 
 if __name__ == "__main__":
