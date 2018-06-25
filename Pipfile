@@ -11,6 +11,8 @@ sanic = "*"
 cloudevents-python = "*"
 aiohttp = "*"
 sanic-cors = "*"
+aioredis = "*"
+websockets = "*"
 
 
 [dev-packages]
