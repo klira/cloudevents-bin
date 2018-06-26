@@ -7,5 +7,6 @@ WORKDIR /usr/src/app
 
 RUN pipenv install --system --deploy
 
-COPY app.py /usr/src/app/
+COPY db.py app.py /usr/src/app/
+
 CMD ["python", "app.py"]
