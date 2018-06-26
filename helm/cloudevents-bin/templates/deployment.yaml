@@ -18,5 +18,13 @@ spec:
         env:
           - name: CE_BIN_PORT
             value: "80"
+          - name: CE_BIN_REDIS_URL
+            value: {{ .Values.redisURL }}
+          {{- if .Values.redisPasswordSecret -}}
+          - name: CE_BIN_REDIS_PASSWORD
+            secretKeyRef:
+              name: {{ .Values.redisPasswordSecret }}
+              key: password
+          {{- end -}}
         resources:
 {{ toYaml .Values.resources | indent 12 }}
