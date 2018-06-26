@@ -22,9 +22,10 @@ spec:
             value: {{ .Values.redisURL }}
           {{if .Values.redisPasswordSecret}}
           - name: CE_BIN_REDIS_PASSWORD
-            secretKeyRef:
-              name: {{ .Values.redisPasswordSecret }}
-              key: redis-password
+            valueFrom:
+              secretKeyRef:
+                name: {{ .Values.redisPasswordSecret }}
+                key: redis-password
           {{ end }}
         resources:
 {{ toYaml .Values.resources | indent 12 }}
