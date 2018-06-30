@@ -13,6 +13,7 @@ aiohttp = "*"
 sanic-cors = "*"
 aioredis = "*"
 websockets = "*"
+python-socketio = "*"
 
 
 [dev-packages]

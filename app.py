@@ -2,6 +2,7 @@ import cloudevents
 import asyncio
 import aiohttp
 import ujson
+import socketio
 from db import DB
 from sanic import Sanic
 from sanic.response import json, text
@@ -10,9 +11,19 @@ from sanic_cors import CORS
 app = Sanic("cloudevents-bin", load_env="CE_BIN_")
 cors = CORS(app, resources={r"/api/*": {"origins": "*"}})
 
-stop_ws = None
+sio = socketio.AsyncServer(async_mode='sanic')
+sio.attach(app)
 
-INFO_STR = """CloudEvents is works like but JSON-bin but for CloudEvents. To use it simply start sending webhooks to `/ce/<namespace>` where namespace is an arbitrary string. You can then list your events using /api/<namespace>/events.  Its probably best to use a random ID for you namespace to avoid others using your namespace.  We don't offer any security, your data is visible to anyone who knows your namespace."""
+
+INFO_STR = """CloudEvents is works like but JSON-bin but for CloudEvents. To use it simply start sending webhooks to `/ce/<namespace>` where namespace is an arbitrary string. You can then list your events using /api/<namespace>/events.  Its probably best to use a random ID for you namespace to avoid oathers using your namespace.  We don't offer any security, your data is visible to anyone who knows your namespace."""
+
+@sio.on("join")
+def enter_room(sid, data):
+    sio.enter_room(sid, data['room'])
+
+@sio.on("leave")
+def leave_room(sid, data):
+    sio.leave_room(sid, data['room'])
 
 @app.route("/")
 async def info(request):
@@ -77,30 +88,12 @@ async def get_events(request, namespace):
     return json(dict(events=objects))
 
 
-@app.websocket('/api/<namespace>/feed')
-async def event_feed(request, ws, namespace):
-    sender_fn = ws.send
-    try:
-        if namespace not in app.subs:
-            app.subs[namespace] = []
-        app.subs[namespace].append(sender_fn)
-        await stop_ws
-    finally:
-        if namespace in app.subs:
-            app.subs[namespace].remove(sender_fn)
-
-
 def send_event(ns, event):
-    data = ujson.dumps(event)
-    return asyncio.gather(*(
-        fn(data)
-        for fn in app.subs.get(ns, [])
-    ))
+    return sio.emit("event", dict(ns=ns, event=event), room=ns)
 
 
 @app.listener('before_server_stop')
 async def notify_server_stopping(app, loop):
-    stop_ws.set_result(True)
     await asyncio.sleep(1)
 
 
@@ -114,9 +107,6 @@ async def close_db(app, loop):
 
 @app.listener('before_server_start')
 async def setup_something(app, loop):
-    global stop_ws
-    stop_ws = asyncio.Future(loop=loop)
-    app.subs = dict()
     app.db = DB(app.config, loop, send_event)
     await app.db.start()
     app.http = aiohttp.ClientSession(loop=loop)
