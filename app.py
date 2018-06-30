@@ -92,11 +92,6 @@ def send_event(ns, event):
     return sio.emit("event", dict(ns=ns, event=event), room=ns)
 
 
-@app.listener('before_server_stop')
-async def notify_server_stopping(app, loop):
-    await asyncio.sleep(1)
-
-
 @app.listener('after_server_stop')
 async def close_db(app, loop):
     await asyncio.gather(
